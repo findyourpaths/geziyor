@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "diskcache",
+    srcs = ["diskcache.go"],
+    importpath = "github.com/example/project/cache/diskcache",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_peterbourgon_diskv//:go_default_library"],
+)
+
+go_test(
+    name = "diskcache_test",
+    srcs = ["diskcache_test.go"],
+    embed = [":diskcache"],
+    deps = ["@com_github_findyourpaths_geziyor//cache:go_default_library"],
+)

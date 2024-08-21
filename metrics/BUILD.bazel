@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "metrics",
+    srcs = ["metrics.go"],
+    importpath = "github.com/example/project/metrics",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_go_kit_kit//metrics:go_default_library",
+        "@com_github_go_kit_kit//metrics/discard:go_default_library",
+        "@com_github_go_kit_kit//metrics/expvar:go_default_library",
+        "@com_github_go_kit_kit//metrics/prometheus:go_default_library",
+        "@com_github_prometheus_client_golang//prometheus:go_default_library",
+        "@com_github_prometheus_client_golang//prometheus/promhttp:go_default_library",
+    ],
+)

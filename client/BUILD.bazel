@@ -1,0 +1,36 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "client",
+    srcs = [
+        "client.go",
+        "proxy.go",
+        "request.go",
+        "response.go",
+    ],
+    importpath = "github.com/example/project/client",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_chromedp_cdproto//dom:go_default_library",
+        "@com_github_chromedp_cdproto//network:go_default_library",
+        "@com_github_chromedp_chromedp//:go_default_library",
+        "@com_github_findyourpaths_geziyor//internal:go_default_library",
+        "@com_github_puerkitobio_goquery//:go_default_library",
+        "@org_golang_x_net//html/charset:go_default_library",
+        "@org_golang_x_text//transform:go_default_library",
+    ],
+)
+
+go_test(
+    name = "client_test",
+    srcs = [
+        "client_test.go",
+        "request_test.go",
+        "response_test.go",
+    ],
+    embed = [":client"],
+    deps = [
+        "@com_github_chromedp_chromedp//:go_default_library",
+        "@com_github_stretchr_testify//assert:go_default_library",
+    ],
+)
