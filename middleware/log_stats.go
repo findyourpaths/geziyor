@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"github.com/geziyor/geziyor/client"
-	"github.com/geziyor/geziyor/internal"
+	"github.com/findyourpaths/geziyor/client"
+	"github.com/findyourpaths/geziyor/internal"
 )
 
 // LogStats logs responses

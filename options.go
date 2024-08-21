@@ -2,11 +2,11 @@ package geziyor
 
 import (
 	"github.com/chromedp/chromedp"
-	"github.com/geziyor/geziyor/cache"
-	"github.com/geziyor/geziyor/client"
-	"github.com/geziyor/geziyor/export"
-	"github.com/geziyor/geziyor/metrics"
-	"github.com/geziyor/geziyor/middleware"
+	"github.com/findyourpaths/geziyor/cache"
+	"github.com/findyourpaths/geziyor/client"
+	"github.com/findyourpaths/geziyor/export"
+	"github.com/findyourpaths/geziyor/metrics"
+	"github.com/findyourpaths/geziyor/middleware"
 	"net/http"
 	"net/url"
 	"time"
