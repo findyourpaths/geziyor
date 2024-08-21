@@ -1,8 +1,8 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "memorycache",
+    name = "go_default_library",
     srcs = ["memorycache.go"],
-    importpath = "github.com/example/project/cache/memorycache",
+    importpath = "github.com/findyourpaths/geziyor/cache/memorycache",
     visibility = ["//visibility:public"],
 )

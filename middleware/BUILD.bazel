@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "middleware",
+    name = "go_default_library",
     srcs = [
         "allowed_domains.go",
         "delay.go",
@@ -13,26 +13,26 @@ go_library(
         "parse_html.go",
         "robotstxt.go",
     ],
-    importpath = "github.com/example/project/middleware",
+    importpath = "github.com/findyourpaths/geziyor/middleware",
     visibility = ["//visibility:public"],
     deps = [
-        "@com_github_findyourpaths_geziyor//client:go_default_library",
-        "@com_github_findyourpaths_geziyor//internal:go_default_library",
-        "@com_github_findyourpaths_geziyor//metrics:go_default_library",
+        "//client:go_default_library",
+        "//internal:go_default_library",
+        "//metrics:go_default_library",
         "@com_github_puerkitobio_goquery//:go_default_library",
         "@com_github_temoto_robotstxt//:go_default_library",
     ],
 )
 
 go_test(
-    name = "middleware_test",
+    name = "go_default_test",
     srcs = [
         "delay_test.go",
         "duplicate_requests_test.go",
     ],
-    embed = [":middleware"],
+    embed = [":go_default_library"],
     deps = [
-        "@com_github_findyourpaths_geziyor//client:go_default_library",
+        "//client:go_default_library",
         "@com_github_stretchr_testify//assert:go_default_library",
     ],
 )

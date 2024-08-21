@@ -1,4 +1,14 @@
+workspace(name = "build_bazel_website")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+# new_local_repository(
+#     name = "com_github_findyourpaths_geziyor",
+#     path = ".",
+#     build_file = "//.:BUILD.bazel",
+#     # build_file_content = """
+#     # #     # Optional: BUILD file content if not present in the local repo
+#     # # """,
+# )
 
 http_archive(
     name = "io_bazel_rules_go",
@@ -18,15 +28,19 @@ http_archive(
     ],
 )
 
-
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
-load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
 ############################################################
 # Define your own dependencies here using go_repository.
 # Else, dependencies declared by rules_go/gazelle will be used.
 # The first declaration of an external repository "wins".
 ############################################################
+
+load("//:deps.bzl", "go_dependencies")
+
+# gazelle:repository_macro deps.bzl%go_dependencies
+go_dependencies()
 
 go_rules_dependencies()
 

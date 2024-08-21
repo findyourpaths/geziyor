@@ -1,43 +1,53 @@
 load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
-# gazelle:prefix github.com/example/project
+# gazelle:prefix github.com/findyourpaths/geziyor
 gazelle(name = "gazelle")
 
+gazelle(
+    name = "gazelle-update-repos",
+    args = [
+        "-from_file=go.mod",
+        "-to_macro=deps.bzl%go_dependencies",
+        "-prune",
+    ],
+    command = "update-repos",
+)
+
 go_library(
-    name = "project",
+    name = "go_default_library",
     srcs = [
         "geziyor.go",
         "options.go",
     ],
-    importpath = "github.com/example/project",
+    importpath = "github.com/findyourpaths/geziyor",
     visibility = ["//visibility:public"],
     deps = [
+        "//cache:go_default_library",
+        "//client:go_default_library",
+        "//export:go_default_library",
+        "//internal:go_default_library",
+        "//metrics:go_default_library",
+        "//middleware:go_default_library",
         "@com_github_chromedp_chromedp//:go_default_library",
-        "@com_github_findyourpaths_geziyor//cache:go_default_library",
-        "@com_github_findyourpaths_geziyor//client:go_default_library",
-        "@com_github_findyourpaths_geziyor//export:go_default_library",
-        "@com_github_findyourpaths_geziyor//internal:go_default_library",
-        "@com_github_findyourpaths_geziyor//metrics:go_default_library",
-        "@com_github_findyourpaths_geziyor//middleware:go_default_library",
         "@org_golang_x_time//rate:go_default_library",
     ],
 )
 
 go_test(
-    name = "project_test",
+    name = "go_default_test",
     srcs = ["geziyor_test.go"],
     deps = [
+        ":go_default_library",
+        "//cache:go_default_library",
+        "//cache/diskcache:go_default_library",
+        "//client:go_default_library",
+        "//export:go_default_library",
+        "//internal:go_default_library",
+        "//metrics:go_default_library",
         "@com_github_chromedp_cdproto//dom:go_default_library",
         "@com_github_chromedp_chromedp//:go_default_library",
         "@com_github_elazarl_goproxy//:go_default_library",
-        "@com_github_findyourpaths_geziyor//:go_default_library",
-        "@com_github_findyourpaths_geziyor//cache:go_default_library",
-        "@com_github_findyourpaths_geziyor//cache/diskcache:go_default_library",
-        "@com_github_findyourpaths_geziyor//client:go_default_library",
-        "@com_github_findyourpaths_geziyor//export:go_default_library",
-        "@com_github_findyourpaths_geziyor//internal:go_default_library",
-        "@com_github_findyourpaths_geziyor//metrics:go_default_library",
         "@com_github_fortytw2_leaktest//:go_default_library",
         "@com_github_puerkitobio_goquery//:go_default_library",
         "@com_github_stretchr_testify//assert:go_default_library",
