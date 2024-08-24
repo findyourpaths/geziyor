@@ -1,9 +1,10 @@
 package client
 
 import (
-	"github.com/chromedp/chromedp"
 	"io"
 	"net/http"
+
+	"github.com/chromedp/chromedp"
 )
 
 // Request is a small wrapper around *http.Request that contains Metadata and Rendering option
@@ -20,6 +21,10 @@ type Request struct {
 	// If true request will be opened in Chrome and
 	// fully rendered HTML DOM response will returned as response
 	Rendered bool
+
+	// If true request will be retrieved via Ferret and
+	// fully rendered HTML DOM response will returned as response
+	Ferreted bool
 
 	// Optional response body encoding. Leave empty for automatic detection.
 	// If you're having issues with auto detection, set this.

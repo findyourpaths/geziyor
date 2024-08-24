@@ -3,6 +3,7 @@ module github.com/findyourpaths/geziyor
 go 1.15
 
 require (
+	github.com/MontFerret/ferret v0.18.0
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chromedp/cdproto v0.0.0-20240810084448-b931b754e476

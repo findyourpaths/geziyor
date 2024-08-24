@@ -94,6 +94,8 @@ func NewClient(opt *Options) *Client {
 func (c *Client) DoRequest(req *Request) (resp *Response, err error) {
 	if req.Rendered {
 		resp, err = c.doRequestChrome(req)
+	} else if req.Ferreted {
+		resp, err = c.doRequestFerret(req)
 	} else {
 		resp, err = c.doRequestClient(req)
 	}

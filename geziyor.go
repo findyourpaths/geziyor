@@ -196,6 +196,18 @@ func (g *Geziyor) GetRendered(url string, callback func(g *Geziyor, r *client.Re
 	g.Do(req, callback)
 }
 
+// GetFerreted issues GET request using Ferret.
+func (g *Geziyor) GetFerreted(url string, callback func(g *Geziyor, r *client.Response), fql string) {
+	req, err := client.NewRequest("GET", url, nil)
+	if err != nil {
+		internal.Logger.Printf("Request creating error %v\n", err)
+		return
+	}
+	req.Ferreted = true
+	req.Meta["_fql"] = fql
+	g.Do(req, callback)
+}
+
 // Head issues a HEAD to the specified URL
 func (g *Geziyor) Head(url string, callback func(g *Geziyor, r *client.Response)) {
 	req, err := client.NewRequest("HEAD", url, nil)
