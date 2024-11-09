@@ -175,11 +175,13 @@ func (g *Geziyor) Start() {
 
 // Get issues a GET to the specified URL.
 func (g *Geziyor) Get(url string, callback func(g *Geziyor, r *client.Response)) {
+	// log.Printf("Get(url: %q, callback)", url)
 	req, err := client.NewRequest("GET", url, nil)
 	if err != nil {
 		internal.Logger.Printf("Request creating error %v\n", err)
 		return
 	}
+	req.Synchronized = true
 	g.Do(req, callback)
 }
 
@@ -187,17 +189,20 @@ func (g *Geziyor) Get(url string, callback func(g *Geziyor, r *client.Response))
 // Opens up a new Chrome instance, makes request, waits for rendering HTML DOM and closed.
 // Rendered requests only supported for GET requests.
 func (g *Geziyor) GetRendered(url string, callback func(g *Geziyor, r *client.Response)) {
+	// log.Printf("GetRendered(url: %q, callback)", url)
 	req, err := client.NewRequest("GET", url, nil)
 	if err != nil {
 		internal.Logger.Printf("Request creating error %v\n", err)
 		return
 	}
 	req.Rendered = true
+	req.Synchronized = true
 	g.Do(req, callback)
 }
 
 // GetFerreted issues GET request using Ferret.
 func (g *Geziyor) GetFerreted(url string, callback func(g *Geziyor, r *client.Response), fql string) {
+	// log.Printf("GetFerreted(url: %q, callback)", url)
 	req, err := client.NewRequest("GET", url, nil)
 	if err != nil {
 		internal.Logger.Printf("Request creating error %v\n", err)
@@ -230,12 +235,15 @@ func (g *Geziyor) Post(url string, body io.Reader, callback func(g *Geziyor, r *
 
 // Do sends an HTTP request
 func (g *Geziyor) Do(req *client.Request, callback func(g *Geziyor, r *client.Response)) {
+	// log.Printf("Do(req, callback)")
 	if g.shutdown {
 		return
 	}
 	g.wgRequests.Add(1)
+	// log.Printf("in Do(), calling g.do")
 	if req.Synchronized {
 		g.do(req, callback)
+		// log.Printf("in Do(), g.do returned")
 	} else {
 		go g.do(req, callback)
 	}
@@ -243,6 +251,7 @@ func (g *Geziyor) Do(req *client.Request, callback func(g *Geziyor, r *client.Re
 
 // Do sends an HTTP request
 func (g *Geziyor) do(req *client.Request, callback func(g *Geziyor, r *client.Response)) {
+	// log.Printf("do(req, callback)")
 	g.acquireSem(req)
 	defer g.releaseSem(req)
 	defer g.wgRequests.Done()
@@ -255,7 +264,9 @@ func (g *Geziyor) do(req *client.Request, callback func(g *Geziyor, r *client.Re
 		}
 	}
 
+	// log.Printf("in do(), g.Client.DoRequest(req)")
 	res, err := g.Client.DoRequest(req)
+	// log.Printf("in do(), g.Client.DoRequest(req) returned")
 	if err != nil {
 		if g.Opt.ErrorFunc != nil {
 			g.Opt.ErrorFunc(g, req, err)

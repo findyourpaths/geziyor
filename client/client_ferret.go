@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -27,7 +26,7 @@ RETURN doc
 		req.URL.String(),
 		req.Meta["_fql"])
 
-	log.Printf("fql:\n%s", fql)
+	// log.Printf("fql:\n%s", fql)
 
 	// fmt.Printf("CallFQL(info: %q, fql, url: %q)\n", info, url)
 	program, err := compiler.New().Compile(fql)

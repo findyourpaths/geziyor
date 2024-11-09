@@ -14,6 +14,8 @@ import (
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 	"github.com/findyourpaths/geziyor/internal"
+
+	// scraper "github.com/shynome/go-cloudflare-scraper"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
 )
@@ -82,6 +84,12 @@ func NewClient(opt *Options) *Client {
 		Timeout: time.Second * 180, // Google's timeout
 	}
 
+	// scraper, err := scraper.NewTransport(httpClient.Transport)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// httpClient.Transport = scraper
+
 	client := Client{
 		Client: httpClient,
 		opt:    opt,
@@ -92,6 +100,10 @@ func NewClient(opt *Options) *Client {
 
 // DoRequest selects appropriate request handler, client or Chrome
 func (c *Client) DoRequest(req *Request) (resp *Response, err error) {
+	// log.Printf("DoRequest(req)")
+	// log.Printf("c.Jar before: %#v", c.Jar)
+
+	// log.Printf("in DoRequest() c.doRequest*(req)")
 	if req.Rendered {
 		resp, err = c.doRequestChrome(req)
 	} else if req.Ferreted {
@@ -99,6 +111,8 @@ func (c *Client) DoRequest(req *Request) (resp *Response, err error) {
 	} else {
 		resp, err = c.doRequestClient(req)
 	}
+	// log.Printf("in DoRequest() c.doRequest*(req) returned")
+	// log.Printf("c.Jar after: %#v", c.Jar)
 
 	// Retry on Error
 	if err != nil {
@@ -229,6 +243,9 @@ func (c *Client) doRequestChrome(req *Request) (*Response, error) {
 	httpResponse := &http.Response{
 		Request: req.Request,
 	}
+
+	// log.Printf("req.Header: %#v", req.Header)
+	// log.Printf("res.RequestHeaders: %#v", res.RequestHeaders)
 
 	// If response is set by default pre actions
 	if res != nil {
