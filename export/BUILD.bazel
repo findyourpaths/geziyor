@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "export",
     srcs = [
         "csv.go",
         "export.go",
@@ -10,15 +10,15 @@ go_library(
     ],
     importpath = "github.com/findyourpaths/geziyor/export",
     visibility = ["//visibility:public"],
-    deps = ["//internal:go_default_library"],
+    deps = ["//internal"],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "export_test",
     srcs = [
         "csv_test.go",
         "json_test.go",
     ],
-    embed = [":go_default_library"],
-    deps = ["@com_github_stretchr_testify//assert:go_default_library"],
+    embed = [":export"],
+    deps = ["@com_github_stretchr_testify//assert"],
 )

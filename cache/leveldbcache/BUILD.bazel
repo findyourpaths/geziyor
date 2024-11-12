@@ -1,16 +1,16 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "leveldbcache",
     srcs = ["leveldbcache.go"],
     importpath = "github.com/findyourpaths/geziyor/cache/leveldbcache",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_syndtr_goleveldb//leveldb:go_default_library"],
+    deps = ["@com_github_syndtr_goleveldb//leveldb"],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "leveldbcache_test",
     srcs = ["leveldbcache_test.go"],
-    embed = [":go_default_library"],
-    deps = ["//cache:go_default_library"],
+    embed = [":leveldbcache"],
+    deps = ["//cache"],
 )

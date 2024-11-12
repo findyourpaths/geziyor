@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "client",
     srcs = [
         "client.go",
         "client_ferret.go",
@@ -12,31 +12,31 @@ go_library(
     importpath = "github.com/findyourpaths/geziyor/client",
     visibility = ["//visibility:public"],
     deps = [
-        "//internal:go_default_library",
-        "@com_github_chromedp_cdproto//dom:go_default_library",
-        "@com_github_chromedp_cdproto//network:go_default_library",
-        "@com_github_chromedp_chromedp//:go_default_library",
-        "@com_github_montferret_ferret//pkg/compiler:go_default_library",
-        "@com_github_montferret_ferret//pkg/drivers:go_default_library",
-        "@com_github_montferret_ferret//pkg/drivers/cdp:go_default_library",
-        "@com_github_montferret_ferret//pkg/drivers/http:go_default_library",
-        "@com_github_montferret_ferret//pkg/runtime:go_default_library",
-        "@com_github_puerkitobio_goquery//:go_default_library",
-        "@org_golang_x_net//html/charset:go_default_library",
-        "@org_golang_x_text//transform:go_default_library",
+        "//internal",
+        "@com_github_chromedp_cdproto//dom",
+        "@com_github_chromedp_cdproto//network",
+        "@com_github_chromedp_chromedp//:chromedp",
+        "@com_github_montferret_ferret//pkg/compiler",
+        "@com_github_montferret_ferret//pkg/drivers",
+        "@com_github_montferret_ferret//pkg/drivers/cdp",
+        "@com_github_montferret_ferret//pkg/drivers/http",
+        "@com_github_montferret_ferret//pkg/runtime",
+        "@com_github_puerkitobio_goquery//:goquery",
+        "@org_golang_x_net//html/charset",
+        "@org_golang_x_text//transform",
     ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "client_test",
     srcs = [
         "client_test.go",
         "request_test.go",
         "response_test.go",
     ],
-    embed = [":go_default_library"],
+    embed = [":client"],
     deps = [
-        "@com_github_chromedp_chromedp//:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
+        "@com_github_chromedp_chromedp//:chromedp",
+        "@com_github_stretchr_testify//assert",
     ],
 )
