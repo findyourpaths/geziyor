@@ -21,6 +21,7 @@ go_library(
     srcs = [
         "geziyor.go",
         "options.go",
+        "page_retriever.go",
     ],
     importpath = "github.com/findyourpaths/geziyor",
     visibility = ["//visibility:public"],
@@ -32,27 +33,8 @@ go_library(
         "//metrics",
         "//middleware",
         "@com_github_chromedp_chromedp//:chromedp",
+        "@com_github_puerkitobio_goquery//:goquery",
         "@org_golang_x_time//rate",
-    ],
-)
-
-go_test(
-    name = "go_default_test",
-    srcs = ["geziyor_test.go"],
-    deps = [
-        ":go_default_library",
-        "//cache:go_default_library",
-        "//cache/diskcache:go_default_library",
-        "//client:go_default_library",
-        "//export:go_default_library",
-        "//internal:go_default_library",
-        "//metrics:go_default_library",
-        "@com_github_chromedp_cdproto//dom:go_default_library",
-        "@com_github_chromedp_chromedp//:go_default_library",
-        "@com_github_elazarl_goproxy//:go_default_library",
-        "@com_github_fortytw2_leaktest//:go_default_library",
-        "@com_github_puerkitobio_goquery//:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
     ],
 )
 
