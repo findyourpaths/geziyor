@@ -21,6 +21,7 @@ type GeziyorPageRetriever struct {
 	requests chan *geziyorRequest
 	results  chan *geziyorResult
 	wg       sync.WaitGroup
+	cacheFn  func(string) *goquery.Document
 }
 
 // geziyorRequest represents a geziyorRequest to be processed by geziyor.
@@ -48,12 +49,14 @@ type geziyorResult struct {
 }
 
 // NewGeziyorPageRetriever creates a new GeziyorPageRetriever instance.
-func NewGeziyorPageRetriever(g *Geziyor) *GeziyorPageRetriever {
+func NewGeziyorPageRetriever(g *Geziyor, cacheFn func(string) *goquery.Document) *GeziyorPageRetriever {
 	r := &GeziyorPageRetriever{
 		geziyor:  g,
 		requests: make(chan *geziyorRequest),
 		results:  make(chan *geziyorResult),
+		cacheFn:  cacheFn,
 	}
+
 	r.wg.Add(1)
 	go r.worker()
 	return r
@@ -63,6 +66,14 @@ func NewGeziyorPageRetriever(g *Geziyor) *GeziyorPageRetriever {
 func (gpr *GeziyorPageRetriever) worker() {
 	defer gpr.wg.Done()
 	for req := range gpr.requests {
+		if gpr.cacheFn != nil {
+			gqdoc := gpr.cacheFn(req.url)
+			if gqdoc != nil {
+				gpr.results <- &geziyorResult{response: &client.Response{HTMLDoc: gqdoc}}
+				continue
+			}
+		}
+
 		switch req.requestType {
 		case StandardRequestType:
 			// s.NewTask("default", func(g *Geziyor) {
@@ -86,7 +97,7 @@ func (gpr *GeziyorPageRetriever) worker() {
 		// s.geziyor.NewTask("default", func(g *Geziyor) {
 		// 	resp, err := g.Request(client.NewRequest().SetURL(req.url))
 		default:
-			fmt.Printf("ignoring unknown geziyor request type: %v\n", req.requestType)
+			fmt.Printf("WARNING: ignoring unknown geziyor request type: %v\n", req.requestType)
 		}
 	}
 }
