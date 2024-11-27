@@ -12,6 +12,7 @@ type PageRetriever interface {
 	Retrieve(u string) (*goquery.Document, error)
 	RetrieveFerret(u string, f string) (*goquery.Document, error)
 	RetrieveRendered(u string) (*goquery.Document, error)
+	CachedPage(string) *goquery.Document
 	Close()
 }
 
@@ -62,16 +63,20 @@ func NewGeziyorPageRetriever(g *Geziyor, cacheFn func(string) *goquery.Document)
 	return r
 }
 
+func (gpr *GeziyorPageRetriever) CachedPage(u string) *goquery.Document {
+	if gpr.cacheFn == nil {
+		return nil
+	}
+	return gpr.cacheFn(u)
+}
+
 // worker is the goroutine that processes requests.
 func (gpr *GeziyorPageRetriever) worker() {
 	defer gpr.wg.Done()
 	for req := range gpr.requests {
-		if gpr.cacheFn != nil {
-			gqdoc := gpr.cacheFn(req.url)
-			if gqdoc != nil {
-				gpr.results <- &geziyorResult{response: &client.Response{HTMLDoc: gqdoc}}
-				continue
-			}
+		if gqdoc := gpr.CachedPage(req.url); gqdoc != nil {
+			gpr.results <- &geziyorResult{response: &client.Response{HTMLDoc: gqdoc}}
+			continue
 		}
 
 		switch req.requestType {
