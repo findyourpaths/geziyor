@@ -1,6 +1,8 @@
 package geziyor
 
 import (
+	"fmt"
+
 	"github.com/chromedp/chromedp"
 	"github.com/findyourpaths/geziyor/cache"
 	"github.com/findyourpaths/geziyor/client"
@@ -85,6 +87,8 @@ func NewGeziyor(opt *Options) *Geziyor {
 		PreActions:            opt.PreActions,
 	})
 	if opt.Cache != nil {
+		fmt.Printf("setting cache to %#v\n", opt.Cache)
+		geziyor.Client.Cache = opt.Cache
 		geziyor.Client.Transport = &cache.Transport{
 			Policy:              opt.CachePolicy,
 			Transport:           geziyor.Client.Transport,
@@ -210,6 +214,7 @@ func (g *Geziyor) GetFerreted(url string, callback func(g *Geziyor, r *client.Re
 	}
 	req.Ferreted = true
 	req.Meta["_fql"] = fql
+	req.Synchronized = true
 	g.Do(req, callback)
 }
 
@@ -240,30 +245,37 @@ func (g *Geziyor) Do(req *client.Request, callback func(g *Geziyor, r *client.Re
 		return
 	}
 	g.wgRequests.Add(1)
-	// log.Printf("in Do(), calling g.do")
 	if req.Synchronized {
+		// internal.Logger.Printf("in Do(), calling synch g.do\n")
 		g.do(req, callback)
-		// log.Printf("in Do(), g.do returned")
+		// internal.Logger.Printf("in Do(), synch g.do returned\n")
 	} else {
+		// internal.Logger.Printf("in Do(), calling asynch g.do\n")
 		go g.do(req, callback)
+		// internal.Logger.Printf("in Do(), asynch g.do returned\n")
 	}
 }
 
 // Do sends an HTTP request
 func (g *Geziyor) do(req *client.Request, callback func(g *Geziyor, r *client.Response)) {
 	// log.Printf("do(req, callback)")
+	// defer log.Printf("do(req, callback) returning")
+
 	g.acquireSem(req)
 	defer g.releaseSem(req)
 	defer g.wgRequests.Done()
 	defer g.recoverMe()
 
+	// log.Printf("do(req, callback) starting request middlewares")
 	for _, middlewareFunc := range g.reqMiddlewares {
+		// log.Printf("do(req, callback) calling request middleware: %#v", middlewareFunc)
 		middlewareFunc.ProcessRequest(req)
 		if req.Cancelled {
 			return
 		}
 	}
 
+	// log.Printf("do(req, callback) doing request")
 	// log.Printf("in do(), g.Client.DoRequest(req)")
 	res, err := g.Client.DoRequest(req)
 	// log.Printf("in do(), g.Client.DoRequest(req) returned")
@@ -276,10 +288,12 @@ func (g *Geziyor) do(req *client.Request, callback func(g *Geziyor, r *client.Re
 		return
 	}
 
+	// log.Printf("do(req, callback) starting response middlewares")
 	for _, middlewareFunc := range g.resMiddlewares {
 		middlewareFunc.ProcessResponse(res)
 	}
 
+	// log.Printf("do(req, callback) starting response callbacks")
 	// Callbacks
 	if callback != nil {
 		callback(g, res)

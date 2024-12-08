@@ -12,7 +12,7 @@ type PageRetriever interface {
 	Retrieve(u string) (*goquery.Document, error)
 	RetrieveFerret(u string, f string) (*goquery.Document, error)
 	RetrieveRendered(u string) (*goquery.Document, error)
-	CachedPage(string) *goquery.Document
+	// CachedPage(string) *goquery.Document
 	Close()
 }
 
@@ -22,7 +22,7 @@ type GeziyorPageRetriever struct {
 	requests chan *geziyorRequest
 	results  chan *geziyorResult
 	wg       sync.WaitGroup
-	cacheFn  func(string) *goquery.Document
+	// cacheFn  func(string) *goquery.Document
 }
 
 // geziyorRequest represents a geziyorRequest to be processed by geziyor.
@@ -50,12 +50,13 @@ type geziyorResult struct {
 }
 
 // NewGeziyorPageRetriever creates a new GeziyorPageRetriever instance.
-func NewGeziyorPageRetriever(g *Geziyor, cacheFn func(string) *goquery.Document) *GeziyorPageRetriever {
+// func NewGeziyorPageRetriever(g *Geziyor, cacheFn func(string) *goquery.Document) *GeziyorPageRetriever {
+func NewGeziyorPageRetriever(g *Geziyor) *GeziyorPageRetriever {
 	r := &GeziyorPageRetriever{
 		geziyor:  g,
 		requests: make(chan *geziyorRequest),
 		results:  make(chan *geziyorResult),
-		cacheFn:  cacheFn,
+		// cacheFn:  cacheFn,
 	}
 
 	r.wg.Add(1)
@@ -63,21 +64,21 @@ func NewGeziyorPageRetriever(g *Geziyor, cacheFn func(string) *goquery.Document)
 	return r
 }
 
-func (gpr *GeziyorPageRetriever) CachedPage(u string) *goquery.Document {
-	if gpr.cacheFn == nil {
-		return nil
-	}
-	return gpr.cacheFn(u)
-}
+// func (gpr *GeziyorPageRetriever) CachedPage(u string) *goquery.Document {
+// 	if gpr.cacheFn == nil {
+// 		return nil
+// 	}
+// 	return gpr.cacheFn(u)
+// }
 
 // worker is the goroutine that processes requests.
 func (gpr *GeziyorPageRetriever) worker() {
 	defer gpr.wg.Done()
 	for req := range gpr.requests {
-		if gqdoc := gpr.CachedPage(req.url); gqdoc != nil {
-			gpr.results <- &geziyorResult{response: &client.Response{HTMLDoc: gqdoc}}
-			continue
-		}
+		// if gqdoc := gpr.CachedPage(req.url); gqdoc != nil {
+		// gpr.results <- &geziyorResult{response: &client.Response{HTMLDoc: gqdoc}}
+		// continue
+		// }
 
 		switch req.requestType {
 		case StandardRequestType:

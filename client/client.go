@@ -5,14 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
+	"github.com/findyourpaths/geziyor/cache"
 	"github.com/findyourpaths/geziyor/internal"
 
 	// scraper "github.com/shynome/go-cloudflare-scraper"
@@ -28,7 +31,8 @@ var (
 // Client is a small wrapper around *http.Client to provide new methods.
 type Client struct {
 	*http.Client
-	opt *Options
+	opt   *Options
+	Cache cache.Cache
 }
 
 // Options is custom http.client options
@@ -99,68 +103,131 @@ func NewClient(opt *Options) *Client {
 }
 
 // DoRequest selects appropriate request handler, client or Chrome
-func (c *Client) DoRequest(req *Request) (resp *Response, err error) {
-	// log.Printf("DoRequest(req)")
+func (c *Client) DoRequest(creq *Request) (*Response, error) {
+	// log.Printf("DoRequest(creq)")
+	// defer log.Printf("DoRequest(creq) returning")
+
+	if c.Cache != nil {
+		hresp, err := cache.CachedResponse(c.Cache, creq.Request)
+		if hresp != nil && err == nil {
+			return c.makeResponse(creq, hresp)
+		}
+	}
+
+	// log.Printf("client.Client.DoRequest(req: %#v)", req)
 	// log.Printf("c.Jar before: %#v", c.Jar)
 
-	// log.Printf("in DoRequest() c.doRequest*(req)")
-	if req.Rendered {
-		resp, err = c.doRequestChrome(req)
-	} else if req.Ferreted {
-		resp, err = c.doRequestFerret(req)
-	} else {
-		resp, err = c.doRequestClient(req)
-	}
-	// log.Printf("in DoRequest() c.doRequest*(req) returned")
+	cresp, err := c.doCache(creq, func() (*Response, error) {
+		// log.Printf("in DoRequest() c.doRequest*(req)")
+		if creq.Rendered {
+			return c.doRequestChrome(creq)
+		} else if creq.Ferreted {
+			return c.doRequestFerret(creq)
+		}
+		return c.doRequestClient(creq)
+	})
+	// log.Printf("in DoRequescreq c.doRequest*(req) returned")
 	// log.Printf("c.Jar after: %#v", c.Jar)
 
 	// Retry on Error
 	if err != nil {
-		if req.retryCounter < c.opt.RetryTimes {
-			req.retryCounter++
-			internal.Logger.Println("Retrying:", req.URL.String())
-			return c.DoRequest(req)
+		if creq.retryCounter < c.opt.RetryTimes {
+			creq.retryCounter++
+			internal.Logger.Println("Retrying:", creq.URL.String())
+			return c.DoRequest(creq)
 		}
-		return resp, err
+		return cresp, err
 	}
 
 	// Retry on http status codes
-	if internal.ContainsInt(c.opt.RetryHTTPCodes, resp.StatusCode) {
-		if req.retryCounter < c.opt.RetryTimes {
-			req.retryCounter++
-			internal.Logger.Println("Retrying:", req.URL.String(), resp.StatusCode)
-			return c.DoRequest(req)
+	if internal.ContainsInt(c.opt.RetryHTTPCodes, cresp.StatusCode) {
+		if creq.retryCounter < c.opt.RetryTimes {
+			creq.retryCounter++
+			internal.Logger.Println("Retrying:", creq.URL.String(), cresp.StatusCode)
+			return c.DoRequest(creq)
 		}
 	}
 
-	return resp, err
+	return cresp, nil
+}
+
+// Custom type that holds your function
+type myTransport struct {
+	requestFn func() (*Response, error)
+	response  *Response
+}
+
+// Implement the RoundTrip method for myTransport
+func (t *myTransport) RoundTrip(hreq *http.Request) (*http.Response, error) {
+	cresp, err := t.requestFn()
+	if err != nil {
+		return nil, err
+	}
+	t.response = cresp
+	return cresp.Response, nil
+}
+
+// doCache is a simple wrapper to read response from cache.
+func (c *Client) doCache(creq *Request, reqFn func() (*Response, error)) (*Response, error) {
+	// log.Printf("client.Client.doCache(creq: %#v, reqFn)", creq)
+	if c.Cache == nil {
+		return reqFn()
+	}
+
+	t := cache.NewTransport(c.Cache)
+	myt := &myTransport{requestFn: reqFn}
+	t.Transport = myt
+	t.Policy = cache.Dummy
+	hresp, err := t.RoundTrip(creq.Request)
+	// log.Printf("in client.Client.doCache(creq, reqFn), hresp: %#v", hresp)
+	// log.Printf("in client.Client.doCache(creq, reqFn), err: %#v", err)
+	if err != nil {
+		return nil, err
+	}
+	if myt.response != nil {
+		return myt.response, nil
+	}
+	defer func() {
+		if hresp != nil && hresp.Body != nil {
+			hresp.Body.Close()
+		}
+	}()
+	return c.makeResponse(creq, hresp)
 }
 
 // doRequestClient is a simple wrapper to read response according to options.
-func (c *Client) doRequestClient(req *Request) (*Response, error) {
+func (c *Client) doRequestClient(creq *Request) (*Response, error) {
 	// Do request
-	resp, err := c.Do(req.Request)
+	hresp, err := c.Do(creq.Request)
 	defer func() {
-		if resp != nil {
-			resp.Body.Close()
+		if hresp != nil {
+			hresp.Body.Close()
 		}
 	}()
 	if err != nil {
 		return nil, fmt.Errorf("response: %w", err)
 	}
 
+	return c.makeResponse(creq, hresp)
+}
+
+// makeResponse returns a client.Response from a client.Request and
+// http.Response, which may have originated either from a request or a cache
+// hit.
+func (c *Client) makeResponse(creq *Request, hresp *http.Response) (*Response, error) {
 	// Limit response body reading
-	bodyReader := io.LimitReader(resp.Body, c.opt.MaxBodySize)
+	bodyReader := io.LimitReader(hresp.Body, c.opt.MaxBodySize)
 
 	// Decode response
-	if resp.Request.Method != "HEAD" && resp.ContentLength > 0 {
-		if req.Encoding != "" {
-			if enc, _ := charset.Lookup(req.Encoding); enc != nil {
+	if hresp.Request != nil && hresp.Request.Method != "HEAD" && hresp.ContentLength > 0 {
+		if creq.Encoding != "" {
+			if enc, _ := charset.Lookup(creq.Encoding); enc != nil {
 				bodyReader = transform.NewReader(bodyReader, enc.NewDecoder())
 			}
 		} else {
 			if !c.opt.CharsetDetectDisabled {
-				contentType := req.Header.Get("Content-Type")
+				contentType := creq.Header.Get("Content-Type")
+				var err error
 				bodyReader, err = charset.NewReader(bodyReader, contentType)
 				if err != nil {
 					return nil, fmt.Errorf("charset detection error on content-type %s: %w", contentType, err)
@@ -175,9 +242,9 @@ func (c *Client) doRequestClient(req *Request) (*Response, error) {
 	}
 
 	response := Response{
-		Response: resp,
+		Response: hresp,
 		Body:     body,
-		Request:  req,
+		Request:  creq,
 	}
 
 	return &response, nil
@@ -185,6 +252,8 @@ func (c *Client) doRequestClient(req *Request) (*Response, error) {
 
 // doRequestChrome opens up a new chrome instance and makes request
 func (c *Client) doRequestChrome(req *Request) (*Response, error) {
+	// log.Printf("client.Client.doRequestChrome(req: %#v)", req)
+	log.Printf("client.Client.doRequestChrome(req.URL: %q)", req.URL)
 	// Set remote allocator or use local chrome instance
 	var allocCtx context.Context
 	var allocCancel context.CancelFunc
@@ -255,6 +324,7 @@ func (c *Client) doRequestChrome(req *Request) (*Response, error) {
 		httpResponse.Proto = res.Protocol
 		httpResponse.Header = ConvertMapToHeader(res.Headers)
 	}
+	httpResponse.Body = io.NopCloser(strings.NewReader(body))
 
 	response := Response{
 		Response: httpResponse,
@@ -262,6 +332,8 @@ func (c *Client) doRequestChrome(req *Request) (*Response, error) {
 		Request:  req,
 	}
 
+	log.Printf("client.Client.doRequestChrome(req.URL: %q), len(body): %d", req.URL, len(body))
+	// log.Printf("in client.Client.doRequestChrome(req), len(body): %d", len(body))
 	return &response, nil
 }
 

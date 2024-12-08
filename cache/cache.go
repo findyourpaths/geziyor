@@ -11,14 +11,16 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"github.com/findyourpaths/geziyor/cache/memorycache"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/findyourpaths/geziyor/cache/memorycache"
 )
 
 type Policy int
@@ -76,7 +78,7 @@ func CachedResponse(c Cache, req *http.Request) (resp *http.Response, err error)
 	}
 
 	b := bytes.NewBuffer(cachedVal)
-	return http.ReadResponse(bufio.NewReader(b), req)
+	return http.ReadResponse(bufio.NewReader(b), nil)
 }
 
 // Transport is an implementation of http.RoundTripper that will return values from a cache
@@ -122,7 +124,6 @@ func varyMatches(cachedResp *http.Response, req *http.Request) bool {
 // RoundTrip is a wrapper for caching requests.
 // If there is a fresh Response already in cache, then it will be returned without connecting to
 // the server.
-//
 func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	if t.Policy == Dummy {
 		return t.RoundTripDummy(req)
@@ -134,8 +135,10 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 // Every request and its corresponding response are cached.
 // When the same request is seen again, the response is returned without transferring anything from the Internet.
 func (t *Transport) RoundTripDummy(req *http.Request) (resp *http.Response, err error) {
+	// log.Printf("cache.Transport.RoundTripDummy(req: %#v)\n", req)
 	cacheKey := cacheKey(req)
 	cacheable := (req.Method == "GET" || req.Method == "HEAD") && req.Header.Get("range") == ""
+	// log.Printf("in cache.Transport.RoundTripDummy(req.URL: %q), cacheable: %t\n", req.URL, cacheable)
 	var cachedResp *http.Response
 	if cacheable {
 		cachedResp, err = CachedResponse(t.Cache, req)
@@ -163,6 +166,7 @@ func (t *Transport) RoundTripDummy(req *http.Request) (resp *http.Response, err 
 
 	if cacheable {
 		respBytes, err := httputil.DumpResponse(resp, true)
+		// log.Printf("in cache.Transport.RoundTripDummy(req.URL: %q), setting cache, err: %v", req.URL, err)
 		if err == nil {
 			t.Cache.Set(cacheKey, respBytes)
 		}
@@ -180,8 +184,10 @@ func (t *Transport) RoundTripDummy(req *http.Request) (resp *http.Response, err 
 // to give the server a chance to respond with NotModified. If this happens, then the cached Response
 // will be returned.
 func (t *Transport) RoundTripRFC2616(req *http.Request) (resp *http.Response, err error) {
+	log.Printf("cache.Transport.RoundTripRFC2616(req: %#v)\n", req)
 	cacheKey := cacheKey(req)
 	cacheable := (req.Method == "GET" || req.Method == "HEAD") && req.Header.Get("range") == ""
+	log.Printf("in cache.Transport.RoundTripRFC2616(req), cacheable: %t\n", cacheable)
 	var cachedResp *http.Response
 	if cacheable {
 		cachedResp, err = CachedResponse(t.Cache, req)
@@ -265,6 +271,8 @@ func (t *Transport) RoundTripRFC2616(req *http.Request) (resp *http.Response, er
 		}
 	}
 
+	// log.Printf("in cache.Transport.RoundTripRFC2616(req), cacheable: %#v\n", cacheable)
+	// log.Printf("in cache.Transport.RoundTripRFC2616(req), canStore...: %#v\n", canStore(parseCacheControl(req.Header), parseCacheControl(resp.Header)))
 	if cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(resp.Header)) {
 		for _, varyKey := range headerAllCommaSepValues(resp.Header, "vary") {
 			varyKey = http.CanonicalHeaderKey(varyKey)
@@ -274,6 +282,7 @@ func (t *Transport) RoundTripRFC2616(req *http.Request) (resp *http.Response, er
 				resp.Header.Set(fakeHeader, reqValue)
 			}
 		}
+		log.Printf("in cache.Transport.RoundTripRFC2616(req), req.Method: %#v\n", req.Method)
 		switch req.Method {
 		case "GET":
 			// Delay caching until EOF is reached.
@@ -283,6 +292,7 @@ func (t *Transport) RoundTripRFC2616(req *http.Request) (resp *http.Response, er
 					resp := *resp
 					resp.Body = ioutil.NopCloser(r)
 					respBytes, err := httputil.DumpResponse(&resp, true)
+					log.Printf("in cache.Transport.RoundTripRFC2616(req), err: %#v\n", err)
 					if err == nil {
 						t.Cache.Set(cacheKey, respBytes)
 					}

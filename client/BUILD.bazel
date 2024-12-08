@@ -12,6 +12,7 @@ go_library(
     importpath = "github.com/findyourpaths/geziyor/client",
     visibility = ["//visibility:public"],
     deps = [
+        "//cache",
         "//internal",
         "@com_github_chromedp_cdproto//dom",
         "@com_github_chromedp_cdproto//network",

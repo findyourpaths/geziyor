@@ -3,9 +3,11 @@ package client
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/MontFerret/ferret/pkg/compiler"
 	"github.com/MontFerret/ferret/pkg/drivers"
@@ -49,12 +51,12 @@ RETURN doc
 	if err != nil {
 		return nil, fmt.Errorf("while running FQL: %w", err)
 	}
-	sbody, err := strconv.Unquote(string(qbody))
+	bodys, err := strconv.Unquote(string(qbody))
 	if err != nil {
 		return nil, fmt.Errorf("while unquoting FQL result: %w", err)
 	}
 
-	body := []byte(sbody)
+	bodybs := []byte(bodys)
 	// log.Printf("in Client.doRequestFerret(), len(body): %d", len(body))
 	// log.Printf("in Client.doRequestFerret(), string(body)[0:1000]: %s", string(body)[0:1000])
 
@@ -102,8 +104,9 @@ RETURN doc
 			StatusCode: 200,
 			Proto:      "HTTP/1.0",
 			Header:     h,
+			Body:       io.NopCloser(strings.NewReader(bodys)),
 		},
-		Body:    body,
+		Body:    bodybs,
 		Request: req,
 	}
 	// log.Printf("in Client.DoRequest(req), response: %T", response)
